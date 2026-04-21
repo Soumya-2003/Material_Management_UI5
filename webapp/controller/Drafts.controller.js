@@ -28,17 +28,21 @@ sap.ui.define([
                 nextEnabled: true
             });
             this.getView().setModel(oWizardModel, "wizardModel");
+
+            var oRouter = this.getOwnerComponent().getRouter();
+            oRouter.getRoute("RouteDrafts").attachPatternMatched(this._onRouteMatched, this);
+        },
+
+        _onRouteMatched: function () {
+            var oTable = this.byId("draftsTable");
+            if (oTable && oTable.getBinding("items")) {
+                // The true parameter forces a hard refresh from the backend
+                oTable.getBinding("items").refresh(); 
+            }
         },
 
         onNavBack: function () {
-            var oHistory = History.getInstance();
-            var sPreviousHash = oHistory.getPreviousHash();
-
-            if (sPreviousHash !== undefined) {
                 window.history.go(-1);
-            } else {
-                this.getOwnerComponent().getRouter().navTo("RouteHome", {}, true);
-            }
         },
 
         onDraftSelect: function (oEvent) {
@@ -211,14 +215,14 @@ sap.ui.define([
 
                     oSubmit.execute().then(function () {
                         MessageToast.show("Draft submitted and Sent for Approval!");
-                        this.byId("draftsTable").getBinding("items").refresh();
+                        oModel.refresh();
                         this.onCloseDialog();
                     }.bind(this)).catch(function () {
                         MessageToast.show("Error submitting PR.");
                     });
                 } else {
                     MessageToast.show("Draft Updated Successfully!");
-                    this.byId("draftsTable").getBinding("items").refresh();
+                    oModel.refresh();
                     this.onCloseDialog();
                 }
             }.bind(this)).catch(function () {
