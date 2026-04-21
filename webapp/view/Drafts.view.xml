@@ -9,7 +9,10 @@
                 id="draftsTable"
                 items="{
                        path: '/DraftPurchaseRequisitions',
-                       filters: [{ path: 'status', operator: 'EQ', value1: 'DRAFT' }]
+                       filters: [{ path: 'status', operator: 'EQ', value1: 'DRAFT' }],
+                       parameters: {
+                           $select: 'ID,prNumber,material_ID,vendor_ID,quantity,totalAmount,status'
+                       }
                    }"
             >
                 <columns>
