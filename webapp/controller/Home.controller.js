@@ -26,6 +26,120 @@ sap.ui.define([
                 nextEnabled: false
             });
             this.getView().setModel(oWizardModel, "wizardModel");
+
+            var oDashboardModel = new JSONModel({
+                draftItems: [],
+                approvalItems: [],
+                poItems: []
+            });
+
+            this.getView().setModel(oDashboardModel, "dashboardModel");
+
+            var oRouter = this.getOwnerComponent().getRouter();
+            if (oRouter.getRoute("RouteHome")) {
+                oRouter.getRoute("RouteHome").attachPatternMatched(this._onRouteMatched, this);
+            }
+
+            this._loadDashboardData();
+        },
+
+        _onRouteMatched: function () {
+            this._loadDashboardData();
+        },
+
+        _loadDashboardData: function () {
+            var oView = this.getView();
+            var oModel = this.getOwnerComponent().getModel();
+            var oDashboardModel = oView.getModel("dashboardModel");
+
+            if (!oModel) {
+                console.error("Default OData V4 model is not available.");
+                return;
+            }
+
+            var oDraftsList = oModel.bindList("/DraftPurchaseRequisitions", null, null, null, {
+                $select: "ID,prNumber,totalAmount,status"
+            });
+
+            oDraftsList.requestContexts(0, 3).then(function (aContexts) {
+                var aDrafts = aContexts.map(function (oContext) {
+                    var oData = oContext.getObject();
+                    var sAmount = oData.totalAmount || oData.totalPrice || "0.00";
+                    return {
+                        title: oData.prNumber || "New Draft",
+                        subtitle: "Action Required",
+                        amount: parseFloat(sAmount).toFixed(2),
+                        statusSchema: "None", 
+                        id: oData.ID
+                    };
+                });
+                oDashboardModel.setProperty("/draftItems", aDrafts);
+            }).catch(function(err) {
+                console.error("Failed to load Drafts:", err);
+            });
+
+            var oApprovalsList = oModel.bindList("/PurchaseRequisitions", null, null, null, {
+                $filter: "status eq 'IN_APPROVAL'",
+                $select: "ID,prNumber,totalAmount,status"
+            });
+
+            oApprovalsList.requestContexts(0, 3).then(function (aContexts) {
+                var aApprovals = aContexts.map(function (oContext) {
+                    var oData = oContext.getObject();
+                    return {
+                        title: oData.prNumber,
+                        subtitle: "Awaiting Manager",
+                        amount: oData.totalAmount ? parseFloat(oData.totalAmount).toFixed(2) : "0.00",
+                        statusSchema: "Warning", 
+                        id: oData.ID
+                    };
+                });
+                oDashboardModel.setProperty("/approvalItems", aApprovals);
+            }).catch(function(err) {
+                console.error("Failed to load Approvals:", err);
+            });
+
+            var oPoList = oModel.bindList("/PurchaseOrders", null, null, null, {
+                $select: "ID,poNumber,totalAmount,status"
+            });
+
+            oPoList.requestContexts(0, 3).then(function (aContexts) {
+                var aPOs = aContexts.map(function (oContext) {
+                    var oData = oContext.getObject();
+                    return {
+                        title: oData.poNumber || "PO Document",
+                        subtitle: "Sent to Vendor",
+                        amount: oData.totalAmount ? parseFloat(oData.totalAmount).toFixed(2) : "0.00",
+                        statusSchema: "Success",
+                        id: oData.ID
+                    };
+                });
+                oDashboardModel.setProperty("/poItems", aPOs);
+            }).catch(function(err) {
+                console.error("Failed to load POs:", err);
+            });
+        },
+
+        // onTilePress: function (oEvent) {
+        //     var sHeader = oEvent.getSource().getHeader();
+        //     MessageToast.show("Navigating to: " + sHeader);
+        //     // Example: this.getOwnerComponent().getRouter().navTo("RouteDetails", { type: sHeader });
+        // },
+
+        onCardItemPress: function (oEvent) {
+            // Find out which specific item inside the card was clicked
+            var oBindingContext = oEvent.getSource().getBindingContext("dashboardModel");
+            var oSelectedData = oBindingContext.getObject();
+
+            // MessageToast.show("Navigating to detail for: " + oSelectedData.title);
+            if (oSelectedData.id) {
+                // Example router nav (adjust "PurchaseRequisitionDetails" to match your manifest.json routes)
+                // this.getOwnerComponent().getRouter().navTo("PurchaseRequisitionDetails", { ID: oSelectedData.id });
+                MessageToast.show("Selected PR UUID: " + oSelectedData.id);
+            }
+
+            // Example Routing:
+            // this.getOwnerComponent().getRouter().navTo("ObjectPage", { id: oSelectedData.title });
         },
 
         onOpenPRWizard: function () {
@@ -44,7 +158,7 @@ sap.ui.define([
                     MessageToast.show("Failed to initialize PR.");
                     return;
                 }
-                
+
                 oWizardModel.setProperty("/prId", oResult.ID);
                 oWizardModel.setProperty("/prNumber", oResult.prNumber);
                 this._openDialog();
@@ -87,6 +201,10 @@ sap.ui.define([
             var oSource = oEvent.getSource();
             var oWizardModel = this.getView().getModel("wizardModel");
             var oVendorSelect = this.byId("vendorSelect");
+            var bIsValid = true;
+
+            oSource.setValueState("None");
+            oSource.setValueStateText("");
 
             if (oSource.getId().includes("materialSelect")) {
                 var oSelectedItem = oSource.getSelectedItem();
@@ -95,15 +213,15 @@ sap.ui.define([
                 this.byId("quantityInput").setValue("");
 
                 oWizardModel.setProperty("/vendorId", "");
-                oWizardModel.setProperty("/vendorText", "");
+                // oWizardModel.setProperty("/vendorText", "");
                 oWizardModel.setProperty("/quantity", 0);
                 oWizardModel.setProperty("/totalPrice", "0.00");
-                oWizardModel.setProperty("/nextEnabled", false);
+                // oWizardModel.setProperty("/nextEnabled", false);
 
                 if (oSelectedItem) {
                     var sMaterialId = oSelectedItem.getKey();
                     oWizardModel.setProperty("/materialId", sMaterialId);
-                    oWizardModel.setProperty("/materialText", oSelectedItem.getText());
+                    // oWizardModel.setProperty("/materialText", oSelectedItem.getText());
 
                     var oContext = oSelectedItem.getBindingContext();
                     var nPrice = oContext ? parseFloat(oContext.getProperty("price")) : 0;
@@ -113,34 +231,47 @@ sap.ui.define([
                     oVendorSelect.getBinding("items").filter([oFilter]);
                     oVendorSelect.setEnabled(true);
                 } else {
-                    // oVendorSelect.clearSelection();
-                    oWizardModel.setProperty("/materialId", "");
                     oVendorSelect.setEnabled(false);
+                    oSource.setValueState("Error");
+                    oSource.setValueStateText("Please select a material.");
+                    bIsValid = false;
+                    // oVendorSelect.clearSelection();
+                    // oWizardModel.setProperty("/materialId", "");
+                    // oVendorSelect.setEnabled(false);
                     // oWizardModel.setProperty("/vendorId", "");
                     // oWizardModel.setProperty("/unitPrice", 0);
                 }
             }
 
-            if (oSource.getId().includes("vendorSelect")) {
-                var oSelectedVendor = oSource.getSelectedItem();
-                if (oSelectedVendor) {
-                    oWizardModel.setProperty("/vendorId", oSelectedVendor.getKey());
-                    oWizardModel.setProperty("/vendorText", oSelectedVendor.getText());
-                } else {
-                    oWizardModel.setProperty("/vendorId", "");
-                }
-            }
+            // if (oSource.getId().includes("vendorSelect")) {
+            //     var oSelectedVendor = oSource.getSelectedItem();
+            //     if (oSelectedVendor) {
+            //         oWizardModel.setProperty("/vendorId", oSelectedVendor.getKey());
+            //         oWizardModel.setProperty("/vendorText", oSelectedVendor.getText());
+            //     } else {
+            //         oWizardModel.setProperty("/vendorId", "");
+            //     }
+            // }
 
             if (oSource.getId().includes("quantityInput")) {
-                var nQuantity = parseInt(oSource.getValue(), 10);
-                oWizardModel.setProperty("/quantity", nQuantity > 0 ? nQuantity : 0);
+                var sValue = oSource.getValue();
+                var nQuantity = parseInt(sValue, 10);
+                // oWizardModel.setProperty("/quantity", nQuantity > 0 ? nQuantity : 0);
+                if (isNaN(nQuantity) || nQuantity <= 0) {
+                    oSource.setValueState("Error");
+                    oSource.setValueStateText("Quantity must be greater than 0.");
+                    oWizardModel.setProperty("/quantity", 0);
+                    bIsValid = false;
+                } else {
+                    oWizardModel.setProperty("/quantity", nQuantity);
+                }
             }
 
             var nTotal = oWizardModel.getProperty("/unitPrice") * oWizardModel.getProperty("/quantity");
             oWizardModel.setProperty("/totalPrice", nTotal.toFixed(2));
 
             var oData = oWizardModel.getData();
-            if (oData.materialId && oData.vendorId && oData.quantity > 0) {
+            if (oData.materialId && oData.vendorId && oData.quantity > 0 && bIsValid) {
                 oWizardModel.setProperty("/nextEnabled", true);
             } else {
                 oWizardModel.setProperty("/nextEnabled", false);
@@ -214,12 +345,14 @@ sap.ui.define([
                     oSubmit.execute().then(function () {
                         MessageToast.show("PR Submitted!");
                         this.onCloseDialog();
+                        this._loadDashboardData();
                     }.bind(this)).catch(function () {
                         MessageToast.show("Error submitting PR.");
                     });
                 } else {
                     MessageToast.show("Draft Saved!");
                     this.onCloseDialog();
+                    this._loadDashboardData();
                 }
             }.bind(this)).catch(function () {
                 MessageToast.show("Error saving draft.");
