@@ -1,1 +1,9 @@
-/* Enter your custom styles here */
+/* style.css */
+.customAppBackground {
+    background-color: #f4f4f6; /* Subtle light gray background */
+    background-image: radial-gradient(circle at top right, #ffffff, #f4f4f6);
+}
+
+.sapUiSmallMarginBottom {
+    margin-bottom: 1rem !important;
+}
