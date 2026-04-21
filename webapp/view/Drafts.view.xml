@@ -1,0 +1,32 @@
+<mvc:View
+    controllerName="mmui5.controller.Drafts"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+>
+    <Page title="My Draft PRs" showNavButton="true" navButtonPress=".onNavBack">
+        <content>
+            <Table
+                id="draftsTable"
+                items="{
+                       path: '/DraftPurchaseRequisitions',
+                       filters: [{ path: 'status', operator: 'EQ', value1: 'DRAFT' }]
+                   }"
+            >
+                <columns>
+                    <Column><Text text="PR Number" /></Column>
+                    <Column><Text text="Status" /></Column>
+                    <Column><Text text="Total Amount" /></Column>
+                </columns>
+                <items>
+                    <ColumnListItem type="Active" press=".onDraftSelect">
+                        <cells>
+                            <Text text="{prNumber}" />
+                            <ObjectStatus text="{status}" state="Warning" />
+                            <Text text="{totalAmount} USD" />
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </content>
+    </Page>
+</mvc:View>

@@ -1,0 +1,83 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+    xmlns:f="sap.ui.layout.form">
+    <Dialog id="prWizardDialog" title="Create Purchase Requisition" contentWidth="800px" contentHeight="500px" verticalScrolling="false">
+        <content>
+            <Wizard id="CreatePRWizard" showNextButton="false">
+                
+                <WizardStep id="DataEntryStep" title="Enter PR Details" validated="false">
+                    <f:SimpleForm editable="true" layout="ResponsiveGridLayout" labelSpanXL="4" labelSpanL="4" labelSpanM="4" emptySpanXL="0" emptySpanL="0" emptySpanM="0" columnsXL="1" columnsL="1" columnsM="1">
+                        <f:content>
+                            <Label text="PR Number" />
+                            <Input value="{wizardModel>/prNumber}" editable="false" />
+
+                            <Label text="Material" required="true"/>
+                            <ComboBox id="materialSelect" 
+                                      items="{/Materials}" 
+                                      selectedKey="{wizardModel>/materialId}"
+                                      change=".onFormChange" 
+                                      width="100%">
+                                <core:Item key="{ID}" text="{name} (Price: {price} {unit})" />
+                            </ComboBox>
+
+                            <Label text="Vendor" required="true"/>
+                            <ComboBox id="vendorSelect" 
+                                      items="{
+                                          path: '/VendorMaterials',
+                                          parameters: {
+                                              $expand: 'vendor'
+                                          }
+                                      }"
+                                      selectedKey="{wizardModel>/vendorId}"
+                                      change=".onFormChange"
+                                      width="100%"
+                                      enabled="{= ${wizardModel>/materialId} !== '' }">
+                                <core:Item key="{vendor_ID}" text="{vendor/name} (Rating: {vendor/rating})" />
+                            </ComboBox>
+
+                            <Label text="Quantity" required="true"/>
+                            <Input id="quantityInput" type="Number" value="{wizardModel>/quantity}" liveChange=".onFormChange" placeholder="Enter an integer quantity"/>
+
+                            <Label text="Total Price" />
+                            <Text text="{wizardModel>/totalPrice} USD" class="sapUiTinyMarginTop" />
+                        </f:content>
+                    </f:SimpleForm>
+                </WizardStep>
+
+                <WizardStep id="ReviewStep" title="Review PR">
+                    <f:SimpleForm editable="false" layout="ResponsiveGridLayout" labelSpanXL="4" labelSpanL="4" labelSpanM="4">
+                        <f:content>
+                            <Label text="Selected Material" />
+                            <Text text="{wizardModel>/materialText}" />
+
+                            <Label text="Selected Vendor" />
+                            <Text text="{wizardModel>/vendorText}" />
+
+                            <Label text="Requested Quantity" />
+                            <Text text="{wizardModel>/quantity}" />
+
+                            <Label text="Total Estimated Price" />
+                            <Text text="{wizardModel>/totalPrice} USD" />
+                        </f:content>
+                    </f:SimpleForm>
+                    
+                    <VBox class="sapUiMediumMarginTop">
+                        <CheckBox id="confirmCheck" text="I confirm the above details are correct." selected="{wizardModel>/isConfirmed}" />
+                    </VBox>
+                </WizardStep>
+
+            </Wizard>
+        </content>
+        <buttons>
+            <Button id="btnPrev" text="Previous" press=".onPrevStep" visible="{wizardModel>/isLastStep}" />
+            <Button id="btnNext" text="Next" type="Emphasized" press=".onNextStep" visible="{wizardModel>/isFirstStep}" enabled="{wizardModel>/nextEnabled}" />
+            
+            <Button id="btnDraft" text="Save as Draft" press=".onSaveDraft" visible="{wizardModel>/isLastStep}" />
+            
+            <Button id="btnSubmit" text="Submit PR" type="Emphasized" press=".onSubmitPR" visible="{= ${wizardModel>/isLastStep} === true &amp;&amp; ${wizardModel>/isConfirmed} === true }" />
+            
+            <Button text="Cancel" press=".onCloseDialog" type="Transparent" />
+        </buttons>
+    </Dialog>
+</core:FragmentDefinition>

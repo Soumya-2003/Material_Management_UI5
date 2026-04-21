@@ -1,0 +1,17 @@
+<mvc:View controllerName="mmui5.controller.Home"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    <Page title="Company Home Page - Material Management">
+        <headerContent>
+        <Button text="Show My PRs" icon="sap-icon://list" press=".onShowMyPRs" type="Transparent" class="sapUiTinyMarginEnd"/>
+            <Button text="Create PR" icon="sap-icon://add" press=".onOpenPRWizard" type="Emphasized"/>
+        </headerContent>
+        <content>
+            <VBox class="sapUiMargin">
+                <Title text="Welcome to the Procurement Dashboard" level="H2"/>
+                <Text text="Click 'Create PR' at the top right to start a new Purchase Requisition." class="sapUiSmallMarginTop"/>
+            </VBox>
+        </content>
+    </Page>
+</mvc:View>
