@@ -13,12 +13,9 @@ sap.ui.define([
             var oWizardModel = new JSONModel({
                 prId: "",
                 prNumber: "",
-                materialId: "",
-                materialText: "",
-                vendorId: "",
-                vendorText: "",
-                quantity: 0,
-                unitPrice: 0,
+                currentItem: { materialId: "", materialText: "", vendorId: "", vendorText: "", quantity: 0, unitPrice: 0 },
+                draftItems: [], // Array to hold multiple materials
+                addItemEnabled: false,
                 totalPrice: "0.00",
                 isFirstStep: true,
                 isLastStep: false,
@@ -209,81 +206,132 @@ sap.ui.define([
             var oSource = oEvent.getSource();
             var oWizardModel = this.getView().getModel("wizardModel");
             var oVendorSelect = this.byId("vendorSelect");
-            var bIsValid = true;
+            var oMaterialSelect = this.byId("materialSelect");
 
             oSource.setValueState("None");
             oSource.setValueStateText("");
 
             if (oSource.getId().includes("materialSelect")) {
                 var oSelectedItem = oSource.getSelectedItem();
-
                 oVendorSelect.clearSelection();
-                this.byId("quantityInput").setValue("");
-
-                oWizardModel.setProperty("/vendorId", "");
-                // oWizardModel.setProperty("/vendorText", "");
-                oWizardModel.setProperty("/quantity", 0);
-                oWizardModel.setProperty("/totalPrice", "0.00");
-                // oWizardModel.setProperty("/nextEnabled", false);
+                oWizardModel.setProperty("/currentItem/vendorId", "");
+                oWizardModel.setProperty("/currentItem/vendorText", "");
 
                 if (oSelectedItem) {
                     var sMaterialId = oSelectedItem.getKey();
-                    oWizardModel.setProperty("/materialId", sMaterialId);
-                    // oWizardModel.setProperty("/materialText", oSelectedItem.getText());
+                    oWizardModel.setProperty("/currentItem/materialId", sMaterialId);
+                    oWizardModel.setProperty("/currentItem/materialText", oSelectedItem.getText());
 
                     var oContext = oSelectedItem.getBindingContext();
                     var nPrice = oContext ? parseFloat(oContext.getProperty("price")) : 0;
-                    oWizardModel.setProperty("/unitPrice", nPrice);
+                    oWizardModel.setProperty("/currentItem/unitPrice", nPrice);
 
                     var oFilter = new Filter("material_ID", FilterOperator.EQ, sMaterialId);
                     oVendorSelect.getBinding("items").filter([oFilter]);
                     oVendorSelect.setEnabled(true);
                 } else {
                     oVendorSelect.setEnabled(false);
-                    oSource.setValueState("Error");
-                    oSource.setValueStateText("Please select a material.");
-                    bIsValid = false;
-                    // oVendorSelect.clearSelection();
-                    // oWizardModel.setProperty("/materialId", "");
-                    // oVendorSelect.setEnabled(false);
-                    // oWizardModel.setProperty("/vendorId", "");
-                    // oWizardModel.setProperty("/unitPrice", 0);
+                    oWizardModel.setProperty("/currentItem/materialId", "");
                 }
             }
 
-            // if (oSource.getId().includes("vendorSelect")) {
-            //     var oSelectedVendor = oSource.getSelectedItem();
-            //     if (oSelectedVendor) {
-            //         oWizardModel.setProperty("/vendorId", oSelectedVendor.getKey());
-            //         oWizardModel.setProperty("/vendorText", oSelectedVendor.getText());
-            //     } else {
-            //         oWizardModel.setProperty("/vendorId", "");
-            //     }
-            // }
+            if (oSource.getId().includes("vendorSelect")) {
+                var oSelectedVendor = oSource.getSelectedItem();
+                if (oSelectedVendor) {
+                    // Extracting the key using binding context because selectedKey maps to vendor_ID in VendorMaterials
+                    oWizardModel.setProperty("/currentItem/vendorId", oSelectedVendor.getBindingContext().getProperty("vendor_ID"));
+                    oWizardModel.setProperty("/currentItem/vendorText", oSelectedVendor.getText());
+                }
+            }
 
             if (oSource.getId().includes("quantityInput")) {
                 var sValue = oSource.getValue();
                 var nQuantity = parseInt(sValue, 10);
-                // oWizardModel.setProperty("/quantity", nQuantity > 0 ? nQuantity : 0);
                 if (isNaN(nQuantity) || nQuantity <= 0) {
                     oSource.setValueState("Error");
-                    oSource.setValueStateText("Quantity must be greater than 0.");
-                    oWizardModel.setProperty("/quantity", 0);
-                    bIsValid = false;
+                    oSource.setValueStateText("Quantity > 0");
+                    oWizardModel.setProperty("/currentItem/quantity", 0);
                 } else {
-                    oWizardModel.setProperty("/quantity", nQuantity);
+                    oWizardModel.setProperty("/currentItem/quantity", nQuantity);
                 }
             }
 
-            var nTotal = oWizardModel.getProperty("/unitPrice") * oWizardModel.getProperty("/quantity");
-            oWizardModel.setProperty("/totalPrice", nTotal.toFixed(2));
-
-            var oData = oWizardModel.getData();
-            if (oData.materialId && oData.vendorId && oData.quantity > 0 && bIsValid) {
-                oWizardModel.setProperty("/nextEnabled", true);
+            // Validate form to enable "Add Item" button
+            var oCurrentItem = oWizardModel.getProperty("/currentItem");
+            if (oCurrentItem.materialId && oCurrentItem.vendorId && oCurrentItem.quantity > 0) {
+                oWizardModel.setProperty("/addItemEnabled", true);
             } else {
-                oWizardModel.setProperty("/nextEnabled", false);
+                oWizardModel.setProperty("/addItemEnabled", false);
             }
+        },
+
+        onAddItem: function () {
+            var oWizardModel = this.getView().getModel("wizardModel");
+            var oCurrentItem = Object.assign({}, oWizardModel.getProperty("/currentItem"));
+            var aItems = oWizardModel.getProperty("/draftItems");
+
+            // Calculate row total and add to array
+            oCurrentItem.itemTotal = (oCurrentItem.quantity * oCurrentItem.unitPrice).toFixed(2);
+            aItems.push(oCurrentItem);
+            oWizardModel.setProperty("/draftItems", aItems);
+            
+            this._recalculateTotal(oWizardModel);
+
+            // Reset form for next item
+            oWizardModel.setProperty("/currentItem", { materialId: "", materialText: "", vendorId: "", vendorText: "", quantity: 0, unitPrice: 0 });
+            oWizardModel.setProperty("/addItemEnabled", false);
+            
+            this.byId("materialSelect").clearSelection();
+            this.byId("vendorSelect").clearSelection();
+            this.byId("vendorSelect").setEnabled(false);
+            this.byId("quantityInput").setValue("");
+            
+            // Enable next step if cart has items
+            oWizardModel.setProperty("/nextEnabled", true);
+        },
+
+        onRemoveItem: function (oEvent) {
+            var oItem = oEvent.getSource().getBindingContext("wizardModel").getObject();
+            var oWizardModel = this.getView().getModel("wizardModel");
+            var aItems = oWizardModel.getProperty("/draftItems");
+            
+            aItems = aItems.filter(function(i) { return i !== oItem; });
+            oWizardModel.setProperty("/draftItems", aItems);
+            
+            this._recalculateTotal(oWizardModel);
+            oWizardModel.setProperty("/nextEnabled", aItems.length > 0);
+        },
+
+        onEditItem: function(oEvent) {
+            var oItem = oEvent.getSource().getBindingContext("wizardModel").getObject();
+            var oWizardModel = this.getView().getModel("wizardModel");
+            var oVendorSelect = this.byId("vendorSelect");
+            
+            // 1. Move the item data back into the form fields
+            oWizardModel.setProperty("/currentItem", {
+                materialId: oItem.materialId,
+                materialText: oItem.materialText,
+                vendorId: oItem.vendorId,
+                vendorText: oItem.vendorText,
+                quantity: oItem.quantity,
+                unitPrice: parseFloat(oItem.unitPrice)
+            });
+
+            // 2. Re-apply the Vendor filter so the dropdown shows the correct vendors for this material
+            var oFilter = new Filter("material_ID", FilterOperator.EQ, oItem.materialId);
+            oVendorSelect.getBinding("items").filter([oFilter]);
+            oVendorSelect.setEnabled(true);
+
+            oWizardModel.setProperty("/addItemEnabled", true);
+
+            // 3. Remove it from the cart array (so they don't get duplicates when they click 'Add' again)
+            this.onRemoveItem(oEvent);
+        },
+
+        _recalculateTotal: function(oWizardModel) {
+            var aItems = oWizardModel.getProperty("/draftItems");
+            var nTotal = aItems.reduce(function(sum, item) { return sum + parseFloat(item.itemTotal); }, 0);
+            oWizardModel.setProperty("/totalPrice", nTotal.toFixed(2));
         },
 
         onNextStep: function () {
@@ -315,8 +363,9 @@ sap.ui.define([
             this.byId("quantityInput").setValue("");
 
             this.getView().getModel("wizardModel").setData({
-                prId: "", prNumber: "", materialId: "", materialText: "", vendorId: "", vendorText: "",
-                quantity: 0, unitPrice: 0, totalPrice: "0.00",
+                prId: "", prNumber: "", 
+                currentItem: { materialId: "", materialText: "", vendorId: "", vendorText: "", quantity: 0, unitPrice: 0 },
+                draftItems: [], addItemEnabled: false, totalPrice: "0.00",
                 isFirstStep: true, isLastStep: false, isConfirmed: false, nextEnabled: false
             });
         },
@@ -333,17 +382,24 @@ sap.ui.define([
             var oData = this.getView().getModel("wizardModel").getData();
             var oModel = this.getView().getModel();
 
-            if (!oData.prId) {
-                MessageToast.show("Error: Draft not initialized properly.");
+            if (!oData.prId || oData.draftItems.length === 0) {
+                MessageToast.show("Error: No items in the Draft.");
                 return;
             }
+
+            // Map UI items to the DraftItemInput array structure expected by CAP
+            var aPayloadItems = oData.draftItems.map(function(item) {
+                return {
+                    material_ID: item.materialId,
+                    vendor_ID: item.vendorId,
+                    quantity: item.quantity
+                };
+            });
 
             var oAction = oModel.bindContext("/saveDraft(...)");
 
             oAction.setParameter("ID", oData.prId);
-            oAction.setParameter("material_ID", oData.materialId || null);
-            oAction.setParameter("vendor_ID", oData.vendorId || null);
-            oAction.setParameter("quantity", parseInt(oData.quantity, 10) || 0);
+            oAction.setParameter("items", aPayloadItems); // Passing the new Array here
 
             oAction.execute().then(function () {
                 if (bSubmit) {
