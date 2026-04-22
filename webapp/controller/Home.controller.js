@@ -125,6 +125,9 @@ sap.ui.define([
             this.getOwnerComponent().getRouter().navTo("RouteManagerApproval");
         },
 
+        onNavToVendor: function () {
+            this.getOwnerComponent().getRouter().navTo("RouteVendorPortal");
+        },
         // onTilePress: function (oEvent) {
         //     var sHeader = oEvent.getSource().getHeader();
         //     MessageToast.show("Navigating to: " + sHeader);
