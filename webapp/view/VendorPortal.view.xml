@@ -1,0 +1,67 @@
+<mvc:View controllerName="mmui5.controller.VendorPortal"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    
+    <Page title="Vendor Portal" showNavButton="true" navButtonPress=".onNavBack">
+        <content>
+            <IconTabBar id="vendorTabBar" class="sapUiResponsiveContentPadding">
+                <items>
+                    <IconTabFilter icon="sap-icon://shipping-status" iconColor="Critical" text="Incoming Orders" key="pending">
+                        <Table id="vendorPoTable" 
+                               items="{
+                                   path: '/PurchaseOrders',
+                                   parameters: { $filter: 'status eq \'CREATED\'' }
+                               }"
+                               noDataText="No pending orders.">
+                            <columns>
+                                <Column><Text text="PO Number" /></Column>
+                                <Column><Text text="Total Amount" /></Column>
+                                <Column><Text text="Date Sent" /></Column>
+                                <Column hAlign="End"><Text text="Actions" /></Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <ObjectIdentifier title="{poNumber}" text="{ID}" />
+                                        <Text text="{totalAmount}" />
+                                        <Text text="{createdAt}" />
+                                        <Button text="Accept &amp; Deliver" icon="sap-icon://accept" type="Accept" press=".onAcceptPO" />
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </IconTabFilter>
+
+                    <IconTabFilter icon="sap-icon://receipt" iconColor="Positive" text="My Goods Receipts" key="receipts">
+                        <Table id="goodsReceiptTable" 
+                               items="{
+                                   path: '/GoodsReceipts',
+                                   parameters: { $expand: 'po' }
+                               }"
+                               noDataText="No Goods Receipts found.">
+                            <columns>
+                                <Column><Text text="Receipt ID" /></Column>
+                                <Column><Text text="PO Reference" /></Column>
+                                <Column><Text text="Status" /></Column>
+                                <Column><Text text="Posted Date" /></Column>
+                                <Column hAlign="End"><Text text="Download" /></Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <Text text="{ID}" />
+                                        <Text text="{po/poNumber}" />
+                                        <ObjectStatus text="{status}" state="Success" />
+                                        <Text text="{postedAt}" />
+                                        <Button icon="sap-icon://pdf-attachment" type="Transparent" press=".onDownloadReceipt" />
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </IconTabFilter>
+                </items>
+            </IconTabBar>
+        </content>
+    </Page>
+</mvc:View>
