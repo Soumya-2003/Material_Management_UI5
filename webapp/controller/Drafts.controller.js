@@ -15,17 +15,14 @@ sap.ui.define([
                 mode: "EDIT",
                 prId: "",
                 prNumber: "",
-                materialId: "",
-                materialText: "Loading...",
-                vendorId: "",
-                vendorText: "Loading...",
-                quantity: 0,
-                unitPrice: 0,
+                currentItem: { materialId: "", materialText: "", vendorId: "", vendorText: "", quantity: 0, unitPrice: 0 },
+                draftItems: [],
+                addItemEnabled: false,
                 totalPrice: "0.00",
                 isFirstStep: true,
                 isLastStep: false,
                 isConfirmed: false,
-                nextEnabled: true
+                nextEnabled: false
             });
             this.getView().setModel(oWizardModel, "wizardModel");
 
@@ -36,39 +33,46 @@ sap.ui.define([
         _onRouteMatched: function () {
             var oTable = this.byId("draftsTable");
             if (oTable && oTable.getBinding("items")) {
-                // The true parameter forces a hard refresh from the backend
                 oTable.getBinding("items").refresh(); 
             }
         },
 
         onNavBack: function () {
-                window.history.go(-1);
+            window.history.go(-1);
         },
 
         onDraftSelect: function (oEvent) {
             var oItem = oEvent.getSource(); 
             var oContext = oItem.getBindingContext();
             var oData = oContext.getObject();
-
             var oWizardModel = this.getView().getModel("wizardModel");
 
-            // Calculate unit price for display
-            var nUnitPrice = (oData.quantity > 0) ? (parseFloat(oData.totalAmount / oData.quantity)) : 0;
+            // Map the backend items into our UI5 array
+            var aDraftItems = (oData.items || []).map(function(item) {
+                var nPrice = parseFloat(item.price) || 0;
+                return {
+                    materialId: item.material_ID,
+                    materialText: item.material ? item.material.name : "Unknown Material",
+                    vendorId: item.vendor_ID,
+                    vendorText: item.vendor ? item.vendor.name : "Unknown Vendor",
+                    quantity: item.quantity,
+                    unitPrice: nPrice.toFixed(2),
+                    itemTotal: (item.quantity * nPrice).toFixed(2)
+                };
+            });
 
             oWizardModel.setData({
                 mode: "EDIT",
                 prId: oData.ID,
-                materialId: oData.material_ID || "",
-                vendorId: oData.vendor_ID || "",
-                quantity: oData.quantity || 0,
-                unitPrice: nUnitPrice,
-                totalPrice: oData.totalAmount,
-                materialText: "Material Selected",
-                vendorText: "Vendor Selected",
+                prNumber: oData.prNumber,
+                currentItem: { materialId: "", materialText: "", vendorId: "", vendorText: "", quantity: 0, unitPrice: 0 },
+                draftItems: aDraftItems,
+                addItemEnabled: false,
+                totalPrice: parseFloat(oData.totalAmount || 0).toFixed(2),
                 isFirstStep: true,
                 isLastStep: false,
                 isConfirmed: false,
-                nextEnabled: true
+                nextEnabled: aDraftItems.length > 0
             });
 
             this.onOpenPRWizard();
@@ -84,7 +88,6 @@ sap.ui.define([
                 }).then(function (oDialog) {
                     this._oWizardDialog = oDialog;
                     oView.addDependent(this._oWizardDialog);
-                    this._applyFiltersForEdit();
                     this._oWizardDialog.open();
                 }.bind(this));
             } else {
@@ -93,24 +96,7 @@ sap.ui.define([
                 if (oWizard && oFirstStep) {
                     oWizard.discardProgress(oFirstStep);
                 }
-                this._applyFiltersForEdit();
                 this._oWizardDialog.open();
-            }
-        },
-
-        _applyFiltersForEdit: function () {
-            var oWizardModel = this.getView().getModel("wizardModel");
-            var sMaterialId = oWizardModel.getProperty("/materialId");
-            var oVendorSelect = this.byId("vendorSelect");
-
-            if (sMaterialId) {
-                // var oVendorSelect = this.byId("vendorSelect");
-                var oFilter = new Filter("material_ID", FilterOperator.EQ, sMaterialId);
-                oVendorSelect.getBinding("items").filter([oFilter]);
-                oVendorSelect.setEnabled(true);
-            }
-            else {
-                oVendorSelect.setEnabled(false);
             }
         },
 
@@ -120,59 +106,121 @@ sap.ui.define([
             }
         },
 
+        // --- Reused from Home.controller.js to support Adding/Removing in Draft mode ---
         onFormChange: function (oEvent) {
             var oSource = oEvent.getSource();
             var oWizardModel = this.getView().getModel("wizardModel");
             var oVendorSelect = this.byId("vendorSelect");
+            var oMaterialSelect = this.byId("materialSelect");
+
+            oSource.setValueState("None");
+            oSource.setValueStateText("");
 
             if (oSource.getId().includes("materialSelect")) {
                 var oSelectedItem = oSource.getSelectedItem();
-
                 oVendorSelect.clearSelection();
-                this.byId("quantityInput").setValue("");
-                
-                oWizardModel.setProperty("/vendorId", "");
-                oWizardModel.setProperty("/vendorText", "");
-                oWizardModel.setProperty("/quantity", 0);
-                oWizardModel.setProperty("/totalPrice", "0.00");
-                oWizardModel.setProperty("/nextEnabled", false);
+                oWizardModel.setProperty("/currentItem/vendorId", "");
+                oWizardModel.setProperty("/currentItem/vendorText", "");
 
                 if (oSelectedItem) {
-                    oWizardModel.setProperty("/materialId", oSelectedItem.getKey());
-                    oWizardModel.setProperty("/materialText", oSelectedItem.getText());
+                    var sMaterialId = oSelectedItem.getKey();
+                    oWizardModel.setProperty("/currentItem/materialId", sMaterialId);
+                    oWizardModel.setProperty("/currentItem/materialText", oSelectedItem.getText());
 
-                    var nPrice = parseFloat(oSelectedItem.getBindingContext().getProperty("price"));
-                    oWizardModel.setProperty("/unitPrice", nPrice);
+                    var oContext = oSelectedItem.getBindingContext();
+                    var nPrice = oContext ? parseFloat(oContext.getProperty("price")) : 0;
+                    oWizardModel.setProperty("/currentItem/unitPrice", nPrice);
 
-                    var oFilter = new Filter("material_ID", FilterOperator.EQ, oSelectedItem.getKey());
+                    var oFilter = new Filter("material_ID", FilterOperator.EQ, sMaterialId);
                     oVendorSelect.getBinding("items").filter([oFilter]);
                     oVendorSelect.setEnabled(true);
                 } else {
-                    oWizardModel.setProperty("/materialId", "");
                     oVendorSelect.setEnabled(false);
+                    oWizardModel.setProperty("/currentItem/materialId", "");
                 }
             }
 
             if (oSource.getId().includes("vendorSelect")) {
                 var oSelectedVendor = oSource.getSelectedItem();
                 if (oSelectedVendor) {
-                    oWizardModel.setProperty("/vendorId", oSelectedVendor.getKey());
-                    oWizardModel.setProperty("/vendorText", oSelectedVendor.getText());
-                } else {
-                    oWizardModel.setProperty("/vendorId", "");
+                    oWizardModel.setProperty("/currentItem/vendorId", oSelectedVendor.getBindingContext().getProperty("vendor_ID"));
+                    oWizardModel.setProperty("/currentItem/vendorText", oSelectedVendor.getText());
                 }
             }
 
             if (oSource.getId().includes("quantityInput")) {
-                var nQuantity = parseInt(oSource.getValue(), 10);
-                oWizardModel.setProperty("/quantity", nQuantity > 0 ? nQuantity : 0);
+                var sValue = oSource.getValue();
+                var nQuantity = parseInt(sValue, 10);
+                if (isNaN(nQuantity) || nQuantity <= 0) {
+                    oWizardModel.setProperty("/currentItem/quantity", 0);
+                } else {
+                    oWizardModel.setProperty("/currentItem/quantity", nQuantity);
+                }
             }
 
-            var nTotal = oWizardModel.getProperty("/unitPrice") * oWizardModel.getProperty("/quantity");
+            var oCurrentItem = oWizardModel.getProperty("/currentItem");
+            oWizardModel.setProperty("/addItemEnabled", !!(oCurrentItem.materialId && oCurrentItem.vendorId && oCurrentItem.quantity > 0));
+        },
+
+        onAddItem: function () {
+            var oWizardModel = this.getView().getModel("wizardModel");
+            var oCurrentItem = Object.assign({}, oWizardModel.getProperty("/currentItem"));
+            var aItems = oWizardModel.getProperty("/draftItems");
+
+            oCurrentItem.itemTotal = (oCurrentItem.quantity * oCurrentItem.unitPrice).toFixed(2);
+            aItems.push(oCurrentItem);
+            oWizardModel.setProperty("/draftItems", aItems);
+            
+            var nTotal = aItems.reduce(function(sum, item) { return sum + parseFloat(item.itemTotal); }, 0);
             oWizardModel.setProperty("/totalPrice", nTotal.toFixed(2));
 
-            var oData = oWizardModel.getData();
-            oWizardModel.setProperty("/nextEnabled", !!(oData.materialId && oData.vendorId && oData.quantity > 0));
+            oWizardModel.setProperty("/currentItem", { materialId: "", materialText: "", vendorId: "", vendorText: "", quantity: 0, unitPrice: 0 });
+            oWizardModel.setProperty("/addItemEnabled", false);
+            
+            this.byId("materialSelect").clearSelection();
+            this.byId("vendorSelect").clearSelection();
+            this.byId("vendorSelect").setEnabled(false);
+            this.byId("quantityInput").setValue("");
+            oWizardModel.setProperty("/nextEnabled", true);
+        },
+
+        onRemoveItem: function (oEvent) {
+            var oItem = oEvent.getSource().getBindingContext("wizardModel").getObject();
+            var oWizardModel = this.getView().getModel("wizardModel");
+            var aItems = oWizardModel.getProperty("/draftItems");
+            
+            aItems = aItems.filter(function(i) { return i !== oItem; });
+            oWizardModel.setProperty("/draftItems", aItems);
+            
+            var nTotal = aItems.reduce(function(sum, item) { return sum + parseFloat(item.itemTotal); }, 0);
+            oWizardModel.setProperty("/totalPrice", nTotal.toFixed(2));
+            oWizardModel.setProperty("/nextEnabled", aItems.length > 0);
+        },
+
+        onEditItem: function(oEvent) {
+            var oItem = oEvent.getSource().getBindingContext("wizardModel").getObject();
+            var oWizardModel = this.getView().getModel("wizardModel");
+            var oVendorSelect = this.byId("vendorSelect");
+            
+            // 1. Move the item data back into the form fields
+            oWizardModel.setProperty("/currentItem", {
+                materialId: oItem.materialId,
+                materialText: oItem.materialText,
+                vendorId: oItem.vendorId,
+                vendorText: oItem.vendorText,
+                quantity: oItem.quantity,
+                unitPrice: parseFloat(oItem.unitPrice)
+            });
+
+            // 2. Re-apply the Vendor filter so the dropdown shows the correct vendors for this material
+            var oFilter = new Filter("material_ID", FilterOperator.EQ, oItem.materialId);
+            oVendorSelect.getBinding("items").filter([oFilter]);
+            oVendorSelect.setEnabled(true);
+
+            oWizardModel.setProperty("/addItemEnabled", true);
+
+            // 3. Remove it from the cart array (so they don't get duplicates when they click 'Add' again)
+            this.onRemoveItem(oEvent);
         },
 
         onNextStep: function () {
@@ -201,12 +249,22 @@ sap.ui.define([
             var oData = this.getView().getModel("wizardModel").getData();
             var oModel = this.getView().getModel();
 
+            if (!oData.prId || oData.draftItems.length === 0) {
+                MessageToast.show("Error: No items in the Draft.");
+                return;
+            }
+
+            var aPayloadItems = oData.draftItems.map(function(item) {
+                return {
+                    material_ID: item.materialId,
+                    vendor_ID: item.vendorId,
+                    quantity: item.quantity
+                };
+            });
+
             var oAction = oModel.bindContext("/saveDraft(...)");
-            
             oAction.setParameter("ID", oData.prId);
-            oAction.setParameter("material_ID", oData.materialId || null);
-            oAction.setParameter("vendor_ID", oData.vendorId || null);
-            oAction.setParameter("quantity", parseInt(oData.quantity, 10) || 0);
+            oAction.setParameter("items", aPayloadItems);
 
             oAction.execute().then(function () {
                 if (bSubmit) {
