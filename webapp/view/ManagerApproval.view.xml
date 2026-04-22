@@ -1,0 +1,72 @@
+<mvc:View controllerName="mmui5.controller.ManagerApproval"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    
+    <Page title="Manager Approval Dashboard" showNavButton="true" navButtonPress=".onNavBack">
+        <content>
+            <IconTabBar id="approvalTabBar" expandable="false" class="sapUiResponsiveContentPadding">
+                <items>
+                    <IconTabFilter icon="sap-icon://approvals" iconColor="Critical" text="Action Required" key="pending">
+                        <Table id="pendingTable" 
+                               items="{
+                                   path: '/PurchaseRequisitions',
+                                   parameters: {
+                                       $filter: 'status eq \'IN_APPROVAL\''
+                                   }
+                               }"
+                               noDataText="No PRs waiting for approval.">
+                            <columns>
+                                <Column><Text text="PR Number" /></Column>
+                                <Column><Text text="Total Amount" /></Column>
+                                <Column><Text text="Created At" /></Column>
+                                <Column hAlign="End"><Text text="Actions" /></Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <ObjectIdentifier title="{prNumber}" text="{ID}" />
+                                        <Text text="{totalAmount}" />
+                                        <Text text="{createdAt}" />
+                                        <HBox justifyContent="End">
+                                            <Button icon="sap-icon://accept" type="Success" press=".onApprove" class="sapUiTinyMarginEnd" tooltip="Approve"/>
+                                            <Button icon="sap-icon://decline" type="Reject" press=".onReject" tooltip="Reject"/>
+                                        </HBox>
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </IconTabFilter>
+
+                    <IconTabFilter icon="sap-icon://history" iconColor="Default" text="Processed" key="processed">
+                        <Table id="processedTable" 
+                               items="{
+                                   path: '/PurchaseRequisitions',
+                                   parameters: {
+                                       $filter: 'status eq \'APPROVED\' or status eq \'REJECTED\''
+                                   }
+                               }"
+                               noDataText="No processed PRs found.">
+                            <columns>
+                                <Column><Text text="PR Number" /></Column>
+                                <Column><Text text="Total Amount" /></Column>
+                                <Column><Text text="Status" /></Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <Text text="{prNumber}" />
+                                        <Text text="{totalAmount}" />
+                                        <ObjectStatus 
+                                            text="{status}" 
+                                            state="{= ${status} === 'APPROVED' ? 'Success' : 'Error' }" />
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </IconTabFilter>
+                </items>
+            </IconTabBar>
+        </content>
+    </Page>
+</mvc:View>
