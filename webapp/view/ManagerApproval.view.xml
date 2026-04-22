@@ -10,24 +10,27 @@
                     <IconTabFilter icon="sap-icon://approvals" iconColor="Critical" text="Action Required" key="pending">
                         <Table id="pendingTable" 
                                items="{
-                                   path: '/PurchaseRequisitions',
+                                   path: '/PR_Items',
                                    parameters: {
-                                       $filter: 'status eq \'IN_APPROVAL\''
+                                       $filter: 'status eq \'IN_APPROVAL\'',
+                                       $expand: 'pr,material,vendor'
                                    }
                                }"
-                               noDataText="No PRs waiting for approval.">
+                               noDataText="No PR items waiting for approval.">
                             <columns>
-                                <Column><Text text="PR Number" /></Column>
-                                <Column><Text text="Total Amount" /></Column>
-                                <Column><Text text="Created At" /></Column>
+                                <Column><Text text="PR Ref" /></Column>
+                                <Column><Text text="Material" /></Column>
+                                <Column><Text text="Vendor" /></Column>
+                                <Column><Text text="Qty" /></Column>
                                 <Column hAlign="End"><Text text="Actions" /></Column>
                             </columns>
                             <items>
                                 <ColumnListItem>
                                     <cells>
-                                        <ObjectIdentifier title="{prNumber}" text="{ID}" />
-                                        <Text text="{totalAmount}" />
-                                        <Text text="{createdAt}" />
+                                        <ObjectIdentifier title="{pr/prNumber}" text="Total PR: {pr/totalAmount}" />
+                                        <Text text="{material/name}" />
+                                        <Text text="{vendor/name}" />
+                                        <Text text="{quantity}" />
                                         <HBox justifyContent="End">
                                             <Button icon="sap-icon://accept" type="Success" press=".onApprove" class="sapUiTinyMarginEnd" tooltip="Approve"/>
                                             <Button icon="sap-icon://decline" type="Reject" press=".onReject" tooltip="Reject"/>
@@ -41,22 +44,25 @@
                     <IconTabFilter icon="sap-icon://history" iconColor="Default" text="Processed" key="processed">
                         <Table id="processedTable" 
                                items="{
-                                   path: '/PurchaseRequisitions',
+                                   path: '/PR_Items',
                                    parameters: {
-                                       $filter: 'status eq \'APPROVED\' or status eq \'REJECTED\''
+                                       $filter: 'status eq \'APPROVED\' or status eq \'REJECTED\'',
+                                       $expand: 'pr,material,vendor'
                                    }
                                }"
-                               noDataText="No processed PRs found.">
+                               noDataText="No processed Items found.">
                             <columns>
-                                <Column><Text text="PR Number" /></Column>
-                                <Column><Text text="Total Amount" /></Column>
+                                <Column><Text text="PR Ref" /></Column>
+                                <Column><Text text="Material" /></Column>
+                                <Column><Text text="Vendor" /></Column>
                                 <Column><Text text="Status" /></Column>
                             </columns>
                             <items>
                                 <ColumnListItem>
                                     <cells>
-                                        <Text text="{prNumber}" />
-                                        <Text text="{totalAmount}" />
+                                        <Text text="{pr/prNumber}" />
+                                        <Text text="{material/name}" />
+                                        <Text text="{vendor/name}" />
                                         <ObjectStatus 
                                             text="{status}" 
                                             state="{= ${status} === 'APPROVED' ? 'Success' : 'Error' }" />
