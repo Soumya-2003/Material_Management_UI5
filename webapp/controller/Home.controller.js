@@ -36,15 +36,16 @@ sap.ui.define([
             this.getView().setModel(oDashboardModel, "dashboardModel");
 
             var oRouter = this.getOwnerComponent().getRouter();
-            if (oRouter.getRoute("RouteHome")) {
-                oRouter.getRoute("RouteHome").attachPatternMatched(this._onRouteMatched, this);
-            }
+            oRouter.attachRouteMatched(this._onRouteMatched, this);
 
             this._loadDashboardData();
         },
 
-        _onRouteMatched: function () {
-            this._loadDashboardData();
+        _onRouteMatched: function (oEvent) {
+            var sRouteName = oEvent.getParameter("name");
+            if (sRouteName === "RouteHome" || sRouteName === "") {
+                this._loadDashboardData();
+            }
         },
 
         _loadDashboardData: function () {
@@ -69,12 +70,12 @@ sap.ui.define([
                         title: oData.prNumber || "New Draft",
                         subtitle: "Action Required",
                         amount: parseFloat(sAmount).toFixed(2),
-                        statusSchema: "None", 
+                        statusSchema: "None",
                         id: oData.ID
                     };
                 });
                 oDashboardModel.setProperty("/draftItems", aDrafts);
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.error("Failed to load Drafts:", err);
             });
 
@@ -90,12 +91,12 @@ sap.ui.define([
                         title: oData.prNumber,
                         subtitle: "Awaiting Manager",
                         amount: oData.totalAmount ? parseFloat(oData.totalAmount).toFixed(2) : "0.00",
-                        statusSchema: "Warning", 
+                        statusSchema: "Warning",
                         id: oData.ID
                     };
                 });
                 oDashboardModel.setProperty("/approvalItems", aApprovals);
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.error("Failed to load Approvals:", err);
             });
 
@@ -115,9 +116,13 @@ sap.ui.define([
                     };
                 });
                 oDashboardModel.setProperty("/poItems", aPOs);
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.error("Failed to load POs:", err);
             });
+        },
+
+        onNavToManagerApproval: function () {
+            this.getOwnerComponent().getRouter().navTo("RouteManagerApproval");
         },
 
         // onTilePress: function (oEvent) {
