@@ -27,6 +27,7 @@
                             <Button text="My Drafts" icon="sap-icon://draft-down" press=".onShowMyPRs" type="Transparent"/>
                             <Button text="Create PR" icon="sap-icon://add" press=".onOpenPRWizard" type="Emphasized"/>
                             <Button text="Manager Approval (Test)" icon="sap-icon://approvals" press=".onNavToManagerApproval" type="Transparent"/>
+                            <Button text="Vendor Portal" icon="sap-icon://supplier" press=".onNavToVendor" type="Transparent"/>
                         </f:actions>
                     </f:DynamicPageTitle>
                 </f:title>
