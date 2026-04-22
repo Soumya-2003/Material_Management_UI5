@@ -109,6 +109,11 @@
           "name": "RouteManagerApproval",
           "pattern": "manager-approval",
           "target": "TargetManagerApproval"
+        },
+        {
+          "name": "RouteVendorPortal",
+          "pattern": "vendor-portal",
+          "target": "TargetVendorPortal"
         }
       ],
       "targets": {
@@ -125,6 +130,12 @@
           "transition": "slide",
           "clearControlAggregation": false,
           "name": "ManagerApproval"
+        },
+        "TargetVendorPortal": {
+          "viewType": "XML",
+          "transition": "slide",
+          "clearControlAggregation": false,
+          "name": "VendorPortal"
         }
       }
     },
