@@ -13,7 +13,6 @@ sap.ui.define([
         },
 
         _onRouteMatched: function () {
-            // Refresh both tables to ensure data is up to date when entering the view
             this.byId("pendingTable").getBinding("items").refresh();
             this.byId("processedTable").getBinding("items").refresh();
         },
@@ -24,30 +23,33 @@ sap.ui.define([
 
         onApprove: function (oEvent) {
             var oContext = oEvent.getSource().getBindingContext();
-            var sPrID = oContext.getProperty("ID");
+            var sItemID = oContext.getProperty("ID");
             
-            this._processApprovalAction("/approvePR(...)", sPrID, "PR Approved successfully. PO Created!");
+            this._processApprovalAction("/approvePRItem(...)", sItemID, "Item Approved successfully. PO Created!");
         },
 
         onReject: function (oEvent) {
             var oContext = oEvent.getSource().getBindingContext();
-            var sPrID = oContext.getProperty("ID");
+            var sItemID = oContext.getProperty("ID");
             
-            MessageBox.confirm("Are you sure you want to reject this PR?", {
+            MessageBox.confirm("Are you sure you want to reject this item?", {
                 title: "Confirm Rejection",
                 onClose: function (sAction) {
                     if (sAction === MessageBox.Action.OK) {
-                        this._processApprovalAction("/rejectPR(...)", sPrID, "PR has been Rejected.");
+                        this._processApprovalAction("/rejectPRItem(...)", sItemID, "Item has been Rejected.");
                     }
                 }.bind(this)
             });
         },
 
-        _processApprovalAction: function (sActionPath, sPrID, sSuccessMessage) {
+        _processApprovalAction: function (sActionPath, sItemID, sSuccessMessage) {
             var oModel = this.getView().getModel();
             var oAction = oModel.bindContext(sActionPath);
             
-            oAction.setParameter("prID", sPrID);
+            oAction.setParameter("itemID", sItemID);
+            if (sActionPath.includes("reject")) {
+                oAction.setParameter("reason", "Rejected by Manager via Dashboard");
+            }
             
             this.getView().setBusy(true);
 
@@ -55,7 +57,7 @@ sap.ui.define([
                 this.getView().setBusy(false);
                 MessageToast.show(sSuccessMessage);
                 oModel.refresh();
-                // Refresh both tables to move the item from "Pending" to "Processed" visually
+                
                 this.byId("pendingTable").getBinding("items").refresh();
                 this.byId("processedTable").getBinding("items").refresh();
                 
