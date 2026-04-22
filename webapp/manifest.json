@@ -104,6 +104,11 @@
           "name": "RouteDrafts",
           "pattern": "drafts",
           "target": "TargetDrafts"
+        },
+        {
+          "name": "RouteManagerApproval",
+          "pattern": "manager-approval",
+          "target": "TargetManagerApproval"
         }
       ],
       "targets": {
@@ -114,6 +119,12 @@
         "TargetDrafts": {
           "id": "Drafts",
           "name": "Drafts"
+        },
+        "TargetManagerApproval": {
+          "viewType": "XML",
+          "transition": "slide",
+          "clearControlAggregation": false,
+          "name": "ManagerApproval"
         }
       }
     },
