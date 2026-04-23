@@ -114,6 +114,11 @@
           "name": "RouteVendorPortal",
           "pattern": "vendor-portal",
           "target": "TargetVendorPortal"
+        },
+        {
+          "name": "RouteInventory",
+          "pattern": "inventory",
+          "target": "TargetInventory"
         }
       ],
       "targets": {
@@ -136,6 +141,12 @@
           "transition": "slide",
           "clearControlAggregation": false,
           "name": "VendorPortal"
+        },
+        "TargetInventory": {
+          "viewType": "XML",
+          "transition": "slide",
+          "clearControlAggregation": false,
+          "name": "Inventory"
         }
       }
     },
