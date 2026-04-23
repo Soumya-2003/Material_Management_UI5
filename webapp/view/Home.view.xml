@@ -1,101 +1,233 @@
-<mvc:View controllerName="mmui5.controller.Home"
+<mvc:View
+    controllerName="mmui5.controller.Home"
     xmlns:mvc="sap.ui.core.mvc"
     xmlns="sap.m"
     xmlns:f="sap.f"
     xmlns:card="sap.f.cards"
     xmlns:layout="sap.ui.layout"
-    xmlns:core="sap.ui.core">
-    
-    <App id="home-app" class="customAppBackground">
-        <Page id="homePage" showHeader="false">
-            <f:DynamicPage id="dynamicPageId" headerExpanded="true" toggleHeaderOnTitleClick="true">
+    xmlns:core="sap.ui.core"
+>
+    <App
+        id="home-app"
+        class="customAppBackground"
+    >
+        <Page
+            id="homePage"
+            showHeader="false"
+        >
+            <f:DynamicPage
+                id="dynamicPageId"
+                headerExpanded="true"
+                toggleHeaderOnTitleClick="true"
+            >
                 <f:title>
                     <f:DynamicPageTitle>
                         <f:heading>
                             <HBox alignItems="Center">
-                                <Avatar src="Gemini_Generated_Image_yznvewyznvewyznv.png" 
-                                        displaySize="S" 
-                                        class="sapUiSmallMarginEnd" 
-                                        backgroundColor="Transparent"/>
-                                <Title text="Material Management Dashboard" level="H2"/>
+                                <Avatar
+                                    src="Gemini_Generated_Image_yznvewyznvewyznv.png"
+                                    displaySize="S"
+                                    class="sapUiSmallMarginEnd"
+                                    backgroundColor="Transparent"
+                                />
+                                <Title
+                                    text="Material Management Dashboard"
+                                    level="H2"
+                                />
                             </HBox>
                         </f:heading>
                         <f:expandedContent>
-                            <Label text="Overview of Procurement Activities"/>
+                            <Label text="Overview of Procurement Activities" />
                         </f:expandedContent>
                         <f:actions>
-                            <Button text="My Drafts" icon="sap-icon://draft-down" press=".onShowMyPRs" type="Transparent"/>
-                            <Button text="Create PR" icon="sap-icon://add" press=".onOpenPRWizard" type="Emphasized"/>
-                            <Button text="Manager Approval (Test)" icon="sap-icon://approvals" press=".onNavToManagerApproval" type="Transparent"/>
-                            <Button text="Vendor Portal" icon="sap-icon://supplier" press=".onNavToVendor" type="Transparent"/>
-                            <Button text="Inventory" icon="sap-icon://supplier" press=".onNavToInventory" type="Transparent"/>
+                            <Button
+                                text="My Drafts"
+                                icon="sap-icon://draft-down"
+                                press=".onShowMyPRs"
+                                type="Transparent"
+                            />
+                            <Button
+                                text="Create PR"
+                                icon="sap-icon://add"
+                                press=".onOpenPRWizard"
+                                type="Emphasized"
+                            />
+                            
+                            <Button
+                                text="Vendor Portal"
+                                icon="sap-icon://supplier"
+                                press=".onNavToVendor"
+                                type="Transparent"
+                            />
+                            <Button
+                                text="Inventory"
+                                icon="sap-icon://supplier"
+                                press=".onNavToInventory"
+                                type="Transparent"
+                            />
                         </f:actions>
                     </f:DynamicPageTitle>
                 </f:title>
 
                 <f:content>
                     <VBox class="sapUiSmallMargin">
-                        <Title text="Action Center" level="H3" class="sapUiMediumMarginBottom"/>
-                        
-                        <FlexBox wrap="Wrap" justifyContent="SpaceBetween">
-                            
-                            <f:Card class="sapUiMediumMarginBottom sapUiMediumMarginEnd" width="350px">
+                        <Title
+                            text="Action Center"
+                            level="H3"
+                            class="sapUiMediumMarginBottom"
+                        />
+
+                        <FlexBox
+                            wrap="Wrap"
+                            justifyContent="SpaceBetween"
+                        >
+                            <f:Card
+                                class="sapUiMediumMarginBottom sapUiMediumMarginEnd"
+                                width="350px"
+                            >
                                 <f:header>
-                                    <card:Header title="My Draft PRs" subtitle="Action Required" iconSrc="sap-icon://draft-down" />
+                                    <card:Header
+                                        title="My Draft PRs"
+                                        subtitle="Action Required"
+                                        iconSrc="sap-icon://draft-down"
+                                    />
                                 </f:header>
                                 <f:content>
-                                    <List class="sapUiSmallMarginBottom" showSeparators="None" items="{dashboardModel>/draftItems}">
-                                        <CustomListItem type="Navigation" press=".onCardItemPress">
-                                            <HBox alignItems="Center" justifyContent="SpaceBetween">
-                                                <VBox class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom">
-                                                    <Title level="H5" text="{dashboardModel>title}" />
-                                                    <Text text="{dashboardModel>subtitle}" />
+                                    <List
+                                        class="sapUiSmallMarginBottom"
+                                        showSeparators="None"
+                                        items="{dashboardModel>/draftItems}"
+                                    >
+                                        <CustomListItem
+                                            type="Navigation"
+                                            press=".onCardItemPress"
+                                        >
+                                            <HBox
+                                                alignItems="Center"
+                                                justifyContent="SpaceBetween"
+                                            >
+                                                <VBox
+                                                    class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom"
+                                                >
+                                                    <Title
+                                                        level="H5"
+                                                        text="{dashboardModel>title}"
+                                                    />
+                                                    <Text
+                                                        text="{dashboardModel>subtitle}"
+                                                    />
                                                 </VBox>
-                                                <ObjectStatus class="sapUiTinyMargin sapUiSmallMarginEnd"
-                                                              text="{dashboardModel>amount}"
-                                                              state="{dashboardModel>statusSchema}" />
+                                                <ObjectStatus
+                                                    class="sapUiTinyMargin sapUiSmallMarginEnd"
+                                                    text="{dashboardModel>amount}"
+                                                    state="{dashboardModel>statusSchema}"
+                                                />
                                             </HBox>
                                         </CustomListItem>
                                     </List>
                                 </f:content>
                             </f:Card>
 
-                            <f:Card class="sapUiMediumMarginBottom sapUiMediumMarginEnd" width="350px">
+                            <f:Card
+                                class="sapUiMediumMarginBottom sapUiMediumMarginEnd"
+                                width="350px"
+                            >
                                 <f:header>
-                                    <card:Header title="PRs In Approval" subtitle="Awaiting Manager Review" iconSrc="sap-icon://approvals" />
+                                    <card:Header
+                                        title="PRs In Approval"
+                                        subtitle="Awaiting Manager Review"
+                                        iconSrc="sap-icon://approvals"
+                                    />
                                 </f:header>
                                 <f:content>
-                                    <List class="sapUiSmallMarginBottom" showSeparators="None" items="{dashboardModel>/approvalItems}">
-                                        <CustomListItem type="Navigation" press=".onCardItemPress">
-                                            <HBox alignItems="Center" justifyContent="SpaceBetween">
-                                                <VBox class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom">
-                                                    <Title level="H5" text="{dashboardModel>title}" />
-                                                    <Text text="{dashboardModel>subtitle}" />
-                                                </VBox>
-                                                <ObjectStatus class="sapUiTinyMargin sapUiSmallMarginEnd"
-                                                              text="{dashboardModel>amount}"
-                                                              state="{dashboardModel>statusSchema}" />
-                                            </HBox>
-                                        </CustomListItem>
-                                    </List>
+                                    <VBox>
+                                        <List
+                                            class="sapUiSmallMarginBottom"
+                                            showSeparators="None"
+                                            items="{dashboardModel>/approvalItems}"
+                                        >
+                                            <CustomListItem
+                                                type="Navigation"
+                                                press=".onCardItemPress"
+                                            >
+                                                <HBox
+                                                    alignItems="Center"
+                                                    justifyContent="SpaceBetween"
+                                                >
+                                                    <VBox
+                                                        class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom"
+                                                    >
+                                                        <Title
+                                                            level="H5"
+                                                            text="{dashboardModel>title}"
+                                                        />
+                                                        <Text
+                                                            text="{dashboardModel>subtitle}"
+                                                        />
+                                                    </VBox>
+                                                    <ObjectStatus
+                                                        class="sapUiTinyMargin sapUiSmallMarginEnd"
+                                                        text="{dashboardModel>amount}"
+                                                        state="{dashboardModel>statusSchema}"
+                                                    />
+                                                </HBox>
+                                            </CustomListItem>
+                                        </List>
+                                        <HBox
+                                            justifyContent="Center"
+                                            class="sapUiTinyMarginBottom"
+                                        >
+                                            <Button
+                                                text="View All PRs"
+                                                press=".onViewAllApprovals"
+                                                type="Transparent"
+                                            />
+                                        </HBox>
+                                    </VBox>
                                 </f:content>
                             </f:Card>
 
-                            <f:Card class="sapUiMediumMarginBottom" width="350px">
+                            <f:Card
+                                class="sapUiMediumMarginBottom"
+                                width="350px"
+                            >
                                 <f:header>
-                                    <card:Header title="Recent Purchase Orders" subtitle="Sent to Vendor" iconSrc="sap-icon://sales-order" />
+                                    <card:Header
+                                        title="Recent Purchase Orders"
+                                        subtitle="Sent to Vendor"
+                                        iconSrc="sap-icon://sales-order"
+                                    />
                                 </f:header>
                                 <f:content>
-                                    <List class="sapUiSmallMarginBottom" showSeparators="None" items="{dashboardModel>/poItems}">
-                                        <CustomListItem type="Navigation" press=".onCardItemPress">
-                                            <HBox alignItems="Center" justifyContent="SpaceBetween">
-                                                <VBox class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom">
-                                                    <Title level="H5" text="{dashboardModel>title}" />
-                                                    <Text text="{dashboardModel>subtitle}" />
+                                    <List
+                                        class="sapUiSmallMarginBottom"
+                                        showSeparators="None"
+                                        items="{dashboardModel>/poItems}"
+                                    >
+                                        <CustomListItem
+                                            type="Navigation"
+                                            press=".onCardItemPress"
+                                        >
+                                            <HBox
+                                                alignItems="Center"
+                                                justifyContent="SpaceBetween"
+                                            >
+                                                <VBox
+                                                    class="sapUiSmallMarginBegin sapUiSmallMarginTopBottom"
+                                                >
+                                                    <Title
+                                                        level="H5"
+                                                        text="{dashboardModel>title}"
+                                                    />
+                                                    <Text
+                                                        text="{dashboardModel>subtitle}"
+                                                    />
                                                 </VBox>
-                                                <ObjectStatus class="sapUiTinyMargin sapUiSmallMarginEnd"
-                                                              text="{dashboardModel>amount}"
-                                                              state="{dashboardModel>statusSchema}" />
+                                                <ObjectStatus
+                                                    class="sapUiTinyMargin sapUiSmallMarginEnd"
+                                                    text="{dashboardModel>amount}"
+                                                    state="{dashboardModel>statusSchema}"
+                                                />
                                             </HBox>
                                         </CustomListItem>
                                     </List>
