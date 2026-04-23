@@ -1,0 +1,41 @@
+<mvc:View controllerName="mmui5.controller.Inventory"
+    xmlns:mvc="sap.ui.core.mvc"
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    
+    <Page title="Warehouse Inventory" showNavButton="true" navButtonPress=".onNavBack">
+        <content>
+            <Table id="inventoryTable" 
+                   items="{
+                       path: '/Stocks',
+                       parameters: {
+                           $expand: 'material'
+                       }
+                   }"
+                   noDataText="No stock data available.">
+                <headerToolbar>
+                    <Toolbar>
+                        <Title text="All Materials" level="H2"/>
+                    </Toolbar>
+                </headerToolbar>
+                <columns>
+                    <Column><Text text="Material Name" /></Column>
+                    <Column><Text text="Material Description" /></Column>
+                    <Column hAlign="End"><Text text="Current Stock" /></Column>
+                    <Column hAlign="Center"><Text text="Status" /></Column>
+                </columns>
+                <items>
+                    <ColumnListItem>
+                        <cells>
+                            <Text text="{material/name}" />
+                            <Text text="{material/description}" />
+                            <Text text="{quantity} {material/unit}" />
+                            <ObjectStatus text="{= ${quantity} > 20 ? 'In Stock' : (${quantity} > 0 ? 'Low Stock' : 'Out of Stock') }"
+                                          state="{= ${quantity} > 20 ? 'Success' : (${quantity} > 0 ? 'Warning' : 'Error') }" />
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </content>
+    </Page>
+</mvc:View>
