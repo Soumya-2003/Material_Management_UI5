@@ -119,9 +119,9 @@ sap.ui.define([
             });
         },
 
-        onNavToManagerApproval: function () {
-            this.getOwnerComponent().getRouter().navTo("RouteManagerApproval");
-        },
+        // onNavToManagerApproval: function () {
+        //     this.getOwnerComponent().getRouter().navTo("RouteManagerApproval");
+        // },
 
         onNavToVendor: function () {
             this.getOwnerComponent().getRouter().navTo("RouteVendorPortal");
@@ -131,12 +131,40 @@ sap.ui.define([
             this.getOwnerComponent().getRouter().navTo("RouteInventory");
         },
 
+        onViewAllApprovals: function () {
+            // Placeholder: Navigate to a dedicated all-approvals route later
+            // this.getOwnerComponent().getRouter().navTo("RouteAllApprovals");
+            MessageToast.show("Navigating to All Approvals List...");
+        },
+
         onCardItemPress: function (oEvent) {
             var oBindingContext = oEvent.getSource().getBindingContext("dashboardModel");
             var oSelectedData = oBindingContext.getObject();
 
-            if (oSelectedData.id) {
-                MessageToast.show("Selected PR UUID: " + oSelectedData.id);
+            var oView = this.getView();
+            
+            // Create a temporary model to hold the selected item's data for the Dialog
+            var oDetailModel = new JSONModel(oSelectedData);
+            oView.setModel(oDetailModel, "detailModel");
+
+            if (!this._oItemDetailsDialog) {
+                Fragment.load({
+                    id: oView.getId(),
+                    name: "mmui5.fragment.ItemDetails", 
+                    controller: this
+                }).then(function (oDialog) {
+                    this._oItemDetailsDialog = oDialog;
+                    oView.addDependent(this._oItemDetailsDialog);
+                    this._oItemDetailsDialog.open();
+                }.bind(this));
+            } else {
+                this._oItemDetailsDialog.open();
+            }
+        },
+
+        onCloseDetailsDialog: function () {
+            if (this._oItemDetailsDialog) {
+                this._oItemDetailsDialog.close();
             }
         },
 
