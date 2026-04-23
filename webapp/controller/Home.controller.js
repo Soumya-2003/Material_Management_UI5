@@ -125,11 +125,10 @@ sap.ui.define([
         onNavToVendor: function () {
             this.getOwnerComponent().getRouter().navTo("RouteVendorPortal");
         },
-        // onTilePress: function (oEvent) {
-        //     var sHeader = oEvent.getSource().getHeader();
-        //     MessageToast.show("Navigating to: " + sHeader);
-        //     // Example: this.getOwnerComponent().getRouter().navTo("RouteDetails", { type: sHeader });
-        // },
+        
+        onNavToInventory: function() {
+            this.getOwnerComponent().getRouter().navTo("RouteInventory");
+        },
 
         onCardItemPress: function (oEvent) {
             // Find out which specific item inside the card was clicked
@@ -148,29 +147,32 @@ sap.ui.define([
         },
 
         onOpenPRWizard: function () {
-            var oView = this.getView();
-            var oModel = oView.getModel();
-            var oWizardModel = oView.getModel("wizardModel");
+            // var oView = this.getView();
+            // var oModel = oView.getModel();
+            // var oWizardModel = oView.getModel("wizardModel");
 
-            var oAction = oModel.bindContext("/createDraft(...)");
+            // var oAction = oModel.bindContext("/createDraft(...)");
 
-            oAction.execute().then(function () {
-                var oResult = oAction.getBoundContext().getObject();
-                if (oResult && oResult.value) {
-                    oResult = oResult.value;
-                }
-                if (!oResult || !oResult.ID) {
-                    MessageToast.show("Failed to initialize PR.");
-                    return;
-                }
+            // oAction.execute().then(function () {
+            //     var oResult = oAction.getBoundContext().getObject();
+            //     if (oResult && oResult.value) {
+            //         oResult = oResult.value;
+            //     }
+            //     if (!oResult || !oResult.ID) {
+            //         MessageToast.show("Failed to initialize PR.");
+            //         return;
+            //     }
 
-                oWizardModel.setProperty("/prId", oResult.ID);
-                oWizardModel.setProperty("/prNumber", oResult.prNumber);
-                this._openDialog();
-            }.bind(this)).catch(function (oError) {
-                console.error("Action execution failed:", oError);
-                MessageToast.show("Error creating PR.");
-            });
+            //     oWizardModel.setProperty("/prId", oResult.ID);
+            //     oWizardModel.setProperty("/prNumber", oResult.prNumber);
+            //     this._openDialog();
+            // }.bind(this)).catch(function (oError) {
+            //     console.error("Action execution failed:", oError);
+            //     MessageToast.show("Error creating PR.");
+            // });
+
+            // this._resetWizard();
+            this._openDialog();
         },
 
         _openDialog: function () {
@@ -184,9 +186,11 @@ sap.ui.define([
                 }).then(function (oDialog) {
                     this._oWizardDialog = oDialog;
                     oView.addDependent(this._oWizardDialog);
+                    this._resetWizard();
                     this._oWizardDialog.open();
                 }.bind(this));
             } else {
+                this._resetWizard();
                 this._oWizardDialog.open();
             }
         },
@@ -355,15 +359,25 @@ sap.ui.define([
         _resetWizard: function () {
             var oWizard = this.byId("CreatePRWizard");
             var oFirstStep = this.byId("DataEntryStep");
-            oWizard.discardProgress(oFirstStep);
+            // oWizard.discardProgress(oFirstStep);
+            if (oWizard && oFirstStep) {
+                oWizard.discardProgress(oFirstStep);
+            }
 
-            this.byId("materialSelect").clearSelection();
-            this.byId("vendorSelect").clearSelection();
-            this.byId("vendorSelect").setEnabled(false);
-            this.byId("quantityInput").setValue("");
+            var oMaterialSelect = this.byId("materialSelect");
+            if (oMaterialSelect) oMaterialSelect.clearSelection();
 
+            var oVendorSelect = this.byId("vendorSelect");
+            if (oVendorSelect) {
+                oVendorSelect.clearSelection();
+                oVendorSelect.setEnabled(false);
+            }
+
+            var oQuantityInput = this.byId("quantityInput");
+            if (oQuantityInput) oQuantityInput.setValue("");
+            
             this.getView().getModel("wizardModel").setData({
-                prId: "", prNumber: "", 
+                prId: "", prNumber: "Pending...", 
                 currentItem: { materialId: "", materialText: "", vendorId: "", vendorText: "", quantity: 0, unitPrice: 0 },
                 draftItems: [], addItemEnabled: false, totalPrice: "0.00",
                 isFirstStep: true, isLastStep: false, isConfirmed: false, nextEnabled: false
@@ -379,48 +393,70 @@ sap.ui.define([
         },
 
         _executePRCreation: function (bSubmit) {
-            var oData = this.getView().getModel("wizardModel").getData();
+            var oWizardModel = this.getView().getModel("wizardModel");
+            var oData = oWizardModel.getData();
             var oModel = this.getView().getModel();
 
-            if (!oData.prId || oData.draftItems.length === 0) {
-                MessageToast.show("Error: No items in the Draft.");
+            if (oData.draftItems.length === 0) {
+                MessageToast.show("Error: No items in the PR.");
                 return;
             }
 
-            // Map UI items to the DraftItemInput array structure expected by CAP
-            var aPayloadItems = oData.draftItems.map(function(item) {
-                return {
-                    material_ID: item.materialId,
-                    vendor_ID: item.vendorId,
-                    quantity: item.quantity
-                };
-            });
+            this.getView().setBusy(true); // Lock UI while processing
 
-            var oAction = oModel.bindContext("/saveDraft(...)");
+            // STEP A: Create the Draft Header in the Database
+            var oCreateAction = oModel.bindContext("/createDraft(...)");
+            oCreateAction.execute().then(function () {
+                var oResult = oCreateAction.getBoundContext().getObject();
+                if (oResult && oResult.value) oResult = oResult.value;
 
-            oAction.setParameter("ID", oData.prId);
-            oAction.setParameter("items", aPayloadItems); // Passing the new Array here
+                var sNewDraftId = oResult.ID; // Get the newly created DB ID
+                
+                // Map UI items to the payload
+                var aPayloadItems = oData.draftItems.map(function(item) {
+                    return {
+                        material_ID: item.materialId,
+                        vendor_ID: item.vendorId,
+                        quantity: item.quantity
+                    };
+                });
 
-            oAction.execute().then(function () {
-                if (bSubmit) {
-                    var oSubmit = oModel.bindContext("/submitDraft(...)");
-                    oSubmit.setParameter("draftID", oData.prId);
+                // STEP B: Save the items directly into the newly created Draft Header
+                var oSaveAction = oModel.bindContext("/saveDraft(...)");
+                oSaveAction.setParameter("ID", sNewDraftId);
+                oSaveAction.setParameter("items", aPayloadItems);
 
-                    oSubmit.execute().then(function () {
-                        MessageToast.show("PR Submitted!");
+                oSaveAction.execute().then(function () {
+                    // STEP C: If they clicked 'Submit', forward it to Approval
+                    if (bSubmit) {
+                        var oSubmit = oModel.bindContext("/submitDraft(...)");
+                        oSubmit.setParameter("draftID", sNewDraftId);
+
+                        oSubmit.execute().then(function () {
+                            this.getView().setBusy(false);
+                            MessageToast.show("PR Submitted!");
+                            this.onCloseDialog();
+                            this._loadDashboardData();
+                        }.bind(this)).catch(function () {
+                            this.getView().setBusy(false);
+                            MessageToast.show("Error submitting PR.");
+                        }.bind(this));
+                    } else {
+                        // They just clicked 'Save as Draft'
+                        this.getView().setBusy(false);
+                        MessageToast.show("Draft Saved!");
                         this.onCloseDialog();
                         this._loadDashboardData();
-                    }.bind(this)).catch(function () {
-                        MessageToast.show("Error submitting PR.");
-                    });
-                } else {
-                    MessageToast.show("Draft Saved!");
-                    this.onCloseDialog();
-                    this._loadDashboardData();
-                }
+                    }
+                }.bind(this)).catch(function () {
+                    this.getView().setBusy(false);
+                    MessageToast.show("Error saving draft items.");
+                }.bind(this));
+
             }.bind(this)).catch(function () {
-                MessageToast.show("Error saving draft.");
-            });
+                this.getView().setBusy(false);
+                MessageToast.show("Error creating draft header.");
+            }.bind(this));
         }
     });
 });
