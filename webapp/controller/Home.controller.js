@@ -28,7 +28,8 @@ sap.ui.define([
             var oDashboardModel = new JSONModel({
                 draftItems: [],
                 approvalItems: [],
-                poItems: []
+                poItems: [],
+                rejectedItems: []
             });
 
             this.getView().setModel(oDashboardModel, "dashboardModel");
@@ -98,6 +99,30 @@ sap.ui.define([
                 console.error("Failed to load Approvals:", err);
             });
 
+            // --- LOAD REJECTED ITEMS FOR NOTIFICATIONS ---
+            var oRejectedList = oModel.bindList("/PR_Items", null, null, null, {
+                $filter: "status eq 'REJECTED'",
+                $expand: "material,vendor,pr" // Expand to get names and PR Number
+            });
+
+            oRejectedList.requestContexts(0, 10).then(function (aContexts) {
+                var aRejected = aContexts.map(function (oContext) {
+                    var oData = oContext.getObject();
+                    var sMatName = oData.material ? oData.material.name : "Item";
+                    var sPrNum = oData.pr ? oData.pr.prNumber : "PR";
+                    
+                    return {
+                        title: sMatName + " (" + sPrNum + ")",
+                        subtitle: oData.rejectionReason || "No reason provided",
+                        amount: oData.quantity + " units",
+                        id: oData.ID // The ITEM ID
+                    };
+                });
+                oDashboardModel.setProperty("/rejectedItems", aRejected);
+            }).catch(function (err) {
+                console.error("Failed to load Rejected Items:", err);
+            });
+
             var oPoList = oModel.bindList("/PurchaseOrders", null, null, null, {
                 $select: "ID,poNumber,totalAmount,status"
             });
@@ -117,6 +142,32 @@ sap.ui.define([
             }).catch(function (err) {
                 console.error("Failed to load POs:", err);
             });
+        },
+
+        onRejectedItemPress: function(oEvent) {
+            var oBindingContext = oEvent.getSource().getBindingContext("dashboardModel");
+            var oSelectedData = oBindingContext.getObject();
+            var oModel = this.getView().getModel();
+            
+            this.getView().setBusy(true);
+            
+            // Call the backend action to extract the item and make a new Draft
+            var oAction = oModel.bindContext("/editRejectedItem(...)");
+            oAction.setParameter("itemID", oSelectedData.id);
+            
+            oAction.execute().then(function() {
+                this.getView().setBusy(false);
+                this._loadDashboardData(); // Refresh the dashboard
+                
+                sap.m.MessageToast.show("Item converted to Draft! Please edit your vendor or quantity.");
+                
+                // Automatically route to Drafts page so they can edit it
+                this.getOwnerComponent().getRouter().navTo("RouteDrafts");
+                
+            }.bind(this)).catch(function(err) {
+                this.getView().setBusy(false);
+                sap.m.MessageBox.error("Failed to reopen rejected item.");
+            }.bind(this));
         },
 
         // onNavToManagerApproval: function () {
