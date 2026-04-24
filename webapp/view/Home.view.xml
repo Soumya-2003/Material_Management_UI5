@@ -52,7 +52,7 @@
                                 press=".onOpenPRWizard"
                                 type="Emphasized"
                             />
-                            
+
                             <Button
                                 text="Vendor Portal"
                                 icon="sap-icon://supplier"
@@ -71,6 +71,36 @@
 
                 <f:content>
                     <VBox class="sapUiSmallMargin">
+                        <VBox
+                            visible="{= ${dashboardModel>/rejectedItems}.length > 0 }"
+                            class="sapUiMediumMarginBottom"
+                        >
+                            <Title
+                                text="Alerts &amp; Notifications ({= ${dashboardModel>/rejectedItems}.length })"
+                                level="H3"
+                                class="sapUiSmallMarginBottom"
+                            />
+                            <List
+                                items="{dashboardModel>/rejectedItems}"
+                                showSeparators="Inner"
+                            >
+                                <NotificationListItem
+                                    title="Rejected: {dashboardModel>title}"
+                                    description="Reason provided by Manager: {dashboardModel>subtitle}&#10;Quantity: {dashboardModel>amount}"
+                                    showCloseButton="false"
+                                    priority="High"
+                                    press=".onRejectedItemPress"
+                                >
+                                    <buttons>
+                                        <Button
+                                            text="Fix &amp; Resubmit"
+                                            press=".onRejectedItemPress"
+                                            type="Accept"
+                                        />
+                                    </buttons>
+                                </NotificationListItem>
+                            </List>
+                        </VBox>
                         <Title
                             text="Action Center"
                             level="H3"
