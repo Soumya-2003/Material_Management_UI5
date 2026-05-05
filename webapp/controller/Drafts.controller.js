@@ -6,7 +6,7 @@ sap.ui.define([
     "sap/ui/model/FilterOperator",
     "sap/m/MessageToast",
     "sap/ui/model/json/JSONModel",
-    "sap/m/MessageBox" // <-- Added MessageBox
+    "sap/m/MessageBox" 
 ], function (Controller, History, Fragment, Filter, FilterOperator, MessageToast, JSONModel, MessageBox) {
     "use strict";
 
@@ -48,7 +48,6 @@ sap.ui.define([
             var oData = oContext.getObject();
             var oWizardModel = this.getView().getModel("wizardModel");
 
-            // Map the backend items into our UI5 array
             var aDraftItems = (oData.items || []).map(function(item) {
                 var nPrice = parseFloat(item.price) || 0;
                 return {
@@ -107,6 +106,39 @@ sap.ui.define([
             }
         },
 
+        onViewDraftItems: function (oEvent) {
+            // Get the specific database row context from the clicked Link
+            var oSource = oEvent.getSource();
+            var oContext = oSource.getBindingContext();
+            var oView = this.getView();
+
+            if (!this._oItemsDialog) {
+                Fragment.load({
+                    id: oView.getId(),
+                    name: "mmui5.fragment.DraftItems",
+                    controller: this
+                }).then(function (oDialog) {
+                    this._oItemsDialog = oDialog;
+                    oView.addDependent(this._oItemsDialog);
+                    
+                    // Bind the specific draft row to the dialog
+                    this._oItemsDialog.setBindingContext(oContext);
+                    this._oItemsDialog.open();
+                }.bind(this));
+            } else {
+                // Already loaded, just update the binding and open
+                this._oItemsDialog.setBindingContext(oContext);
+                this._oItemsDialog.open();
+            }
+        },
+
+        // --- NEW: Close the Materials Quick View Fragment ---
+        onCloseItemsDialog: function () {
+            if (this._oItemsDialog) {
+                this._oItemsDialog.close();
+            }
+        },
+
         onFormChange: function (oEvent) {
             var oSource = oEvent.getSource();
             var oWizardModel = this.getView().getModel("wizardModel");
@@ -143,7 +175,6 @@ sap.ui.define([
             if (oSource.getId().includes("vendorSelect")) {
                 var oSelectedVendor = oSource.getSelectedItem();
                 if (oSelectedVendor) {
-                    // Extracting the key using binding context because selectedKey maps to vendor_ID in VendorMaterials
                     oWizardModel.setProperty("/currentItem/vendorId", oSelectedVendor.getBindingContext().getProperty("vendor_ID"));
                     oWizardModel.setProperty("/currentItem/vendorText", oSelectedVendor.getText());
                 }
@@ -161,23 +192,18 @@ sap.ui.define([
                 }
             }
 
-            // Calculate current total
             var nUnit = oWizardModel.getProperty("/currentItem/unitPrice") || 0;
             var nQty = oWizardModel.getProperty("/currentItem/quantity") || 0;
             oWizardModel.setProperty("/currentItem/itemTotal", (nUnit * nQty).toFixed(2));
 
-            // Validate form to enable "Add Item" button using debounce
             var oCurrentItem = oWizardModel.getProperty("/currentItem");
             if (oCurrentItem.materialId && oCurrentItem.vendorId && oCurrentItem.quantity > 0) {
-                // Disable button immediately while we wait for the backend check
                 oWizardModel.setProperty("/addItemEnabled", false);
                 
-                // Clear existing timeout (prevents spamming DB on every keystroke)
                 if (this._duplicateCheckTimeout) {
                     clearTimeout(this._duplicateCheckTimeout);
                 }
                 
-                // Wait 500ms after user stops typing to check the database
                 this._duplicateCheckTimeout = setTimeout(function() {
                     this._checkDuplicate(oCurrentItem, oWizardModel);
                 }.bind(this), 500);
@@ -187,33 +213,28 @@ sap.ui.define([
             }
         },
 
-        // --- NEW: Database 24hr Duplicate Validation ---
         _checkDuplicate: function (oCurrentItem, oWizardModel) {
             var oModel = this.getView().getModel();
 
-            // Calculate exact time 24 hours ago
             var dYesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-            // Filter PR Items: Same Material AND Vendor AND Quantity AND Parent PR was created in last 24hrs
             var aFilters = [
                 new Filter("material_ID", FilterOperator.EQ, oCurrentItem.materialId),
                 new Filter("vendor_ID", FilterOperator.EQ, oCurrentItem.vendorId),
                 new Filter("quantity", FilterOperator.EQ, oCurrentItem.quantity),
-                new Filter("pr/createdAt", FilterOperator.GE, dYesterday.toISOString()) // Follows association to parent
+                new Filter("pr/createdAt", FilterOperator.GE, dYesterday.toISOString()) 
             ];
 
             var oBinding = oModel.bindList("/PR_Items", null, null, aFilters, { $$groupId: "$direct" });
 
             oBinding.requestContexts(0, 1).then(function (aContexts) {
                 if (aContexts && aContexts.length > 0) {
-                    // Database Duplicate Found!
                     oWizardModel.setProperty("/addItemEnabled", false);
                     MessageBox.error(
                         "A Purchase Requisition for this exact material, vendor, and quantity was already submitted within the last 24 hours.\n\nDuplicate requests are strictly prohibited.",
                         { title: "Duplicate PR Detected" }
                     );
                 } else {
-                    // Safety check: Ensure they don't already have it in their local cart as well
                     var aCartItems = oWizardModel.getProperty("/draftItems");
                     var bInCart = aCartItems.some(function(item) {
                         return item.materialId === oCurrentItem.materialId && 
@@ -225,13 +246,11 @@ sap.ui.define([
                         oWizardModel.setProperty("/addItemEnabled", false);
                         MessageBox.warning("This exact item is already in your current PR draft cart.", { title: "Duplicate Item" });
                     } else {
-                        // Safe to proceed!
                         oWizardModel.setProperty("/addItemEnabled", true);
                     }
                 }
             }).catch(function (err) {
                 console.error("Duplicate validation check failed:", err);
-                // If network fails, allow them to proceed so UX doesn't freeze
                 oWizardModel.setProperty("/addItemEnabled", true); 
             });
         },

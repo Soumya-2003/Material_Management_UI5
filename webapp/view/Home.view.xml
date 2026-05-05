@@ -24,12 +24,12 @@
                     <f:DynamicPageTitle>
                         <f:heading>
                             <HBox alignItems="Center">
-                                <Avatar
+                                <!-- <Avatar
                                     src="Gemini_Generated_Image_yznvewyznvewyznv.png"
                                     displaySize="S"
                                     class="sapUiSmallMarginEnd"
                                     backgroundColor="Transparent"
-                                />
+                                /> -->
                                 <Title
                                     text="Material Management Dashboard"
                                     level="H2"

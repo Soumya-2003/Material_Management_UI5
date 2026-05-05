@@ -5,7 +5,7 @@ sap.ui.define([
     "sap/ui/model/FilterOperator",
     "sap/m/MessageToast",
     "sap/ui/model/json/JSONModel",
-    "sap/m/MessageBox" // <-- Added MessageBox for the popup
+    "sap/m/MessageBox" 
 ], function (Controller, Fragment, Filter, FilterOperator, MessageToast, JSONModel, MessageBox) {
     "use strict";
 
@@ -15,7 +15,7 @@ sap.ui.define([
                 prId: "",
                 prNumber: "",
                 currentItem: { materialId: "", materialText: "", vendorId: "", vendorText: "", quantity: 0, unitPrice: 0 },
-                draftItems: [], // Array to hold multiple materials
+                draftItems: [], 
                 addItemEnabled: false,
                 totalPrice: "0.00",
                 isFirstStep: true,
@@ -99,10 +99,9 @@ sap.ui.define([
                 console.error("Failed to load Approvals:", err);
             });
 
-            // --- LOAD REJECTED ITEMS FOR NOTIFICATIONS ---
             var oRejectedList = oModel.bindList("/PR_Items", null, null, null, {
                 $filter: "status eq 'REJECTED'",
-                $expand: "material,vendor,pr" // Expand to get names and PR Number
+                $expand: "material,vendor,pr" 
             });
 
             oRejectedList.requestContexts(0, 10).then(function (aContexts) {
@@ -115,7 +114,7 @@ sap.ui.define([
                         title: sMatName + " (" + sPrNum + ")",
                         subtitle: oData.rejectionReason || "No reason provided",
                         amount: oData.quantity + " units",
-                        id: oData.ID // The ITEM ID
+                        id: oData.ID 
                     };
                 });
                 oDashboardModel.setProperty("/rejectedItems", aRejected);
@@ -151,17 +150,15 @@ sap.ui.define([
             
             this.getView().setBusy(true);
             
-            // Call the backend action to extract the item and make a new Draft
             var oAction = oModel.bindContext("/editRejectedItem(...)");
             oAction.setParameter("itemID", oSelectedData.id);
             
             oAction.execute().then(function() {
                 this.getView().setBusy(false);
-                this._loadDashboardData(); // Refresh the dashboard
+                this._loadDashboardData(); 
                 
                 sap.m.MessageToast.show("Item converted to Draft! Please edit your vendor or quantity.");
                 
-                // Automatically route to Drafts page so they can edit it
                 this.getOwnerComponent().getRouter().navTo("RouteDrafts");
                 
             }.bind(this)).catch(function(err) {
@@ -169,10 +166,6 @@ sap.ui.define([
                 sap.m.MessageBox.error("Failed to reopen rejected item.");
             }.bind(this));
         },
-
-        // onNavToManagerApproval: function () {
-        //     this.getOwnerComponent().getRouter().navTo("RouteManagerApproval");
-        // },
 
         onNavToVendor: function () {
             this.getOwnerComponent().getRouter().navTo("RouteVendorPortal");
@@ -183,8 +176,6 @@ sap.ui.define([
         },
 
         onViewAllApprovals: function () {
-            // Placeholder: Navigate to a dedicated all-approvals route later
-            // this.getOwnerComponent().getRouter().navTo("RouteAllApprovals");
             MessageToast.show("Navigating to All Approvals List...");
         },
 
@@ -194,7 +185,6 @@ sap.ui.define([
 
             var oView = this.getView();
             
-            // Create a temporary model to hold the selected item's data for the Dialog
             var oDetailModel = new JSONModel(oSelectedData);
             oView.setModel(oDetailModel, "detailModel");
 
@@ -309,17 +299,13 @@ sap.ui.define([
 
             var oCurrentItem = oWizardModel.getProperty("/currentItem");
             
-            // --- NEW: Dynamic Debounced Duplicate Check ---
             if (oCurrentItem.materialId && oCurrentItem.vendorId && oCurrentItem.quantity > 0) {
-                // Disable button immediately while we wait for the backend check
                 oWizardModel.setProperty("/addItemEnabled", false);
                 
-                // Clear existing timeout (prevents spamming DB on every keystroke)
                 if (this._duplicateCheckTimeout) {
                     clearTimeout(this._duplicateCheckTimeout);
                 }
                 
-                // Wait 500ms after user stops typing to check the database
                 this._duplicateCheckTimeout = setTimeout(function() {
                     this._checkDuplicate(oCurrentItem, oWizardModel);
                 }.bind(this), 500);
@@ -329,33 +315,28 @@ sap.ui.define([
             }
         },
 
-        // --- NEW: Database 24hr Duplicate Validation ---
         _checkDuplicate: function (oCurrentItem, oWizardModel) {
             var oModel = this.getView().getModel();
 
-            // Calculate exact time 24 hours ago
             var dYesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-            // Filter PR Items: Same Material AND Vendor AND Quantity AND Parent PR was created in last 24hrs
             var aFilters = [
                 new Filter("material_ID", FilterOperator.EQ, oCurrentItem.materialId),
                 new Filter("vendor_ID", FilterOperator.EQ, oCurrentItem.vendorId),
                 new Filter("quantity", FilterOperator.EQ, oCurrentItem.quantity),
-                new Filter("pr/createdAt", FilterOperator.GE, dYesterday.toISOString()) // Follows association to parent
+                new Filter("pr/createdAt", FilterOperator.GE, dYesterday.toISOString()) 
             ];
 
             var oBinding = oModel.bindList("/PR_Items", null, null, aFilters, { $$groupId: "$direct" });
 
             oBinding.requestContexts(0, 1).then(function (aContexts) {
                 if (aContexts && aContexts.length > 0) {
-                    // Database Duplicate Found!
                     oWizardModel.setProperty("/addItemEnabled", false);
                     MessageBox.error(
                         "A Purchase Requisition for this exact material, vendor, and quantity was already submitted within the last 24 hours.\n\nDuplicate requests are strictly prohibited.",
                         { title: "Duplicate PR Detected" }
                     );
                 } else {
-                    // Safety check: Ensure they don't already have it in their local cart as well
                     var aCartItems = oWizardModel.getProperty("/draftItems");
                     var bInCart = aCartItems.some(function(item) {
                         return item.materialId === oCurrentItem.materialId && 
@@ -367,13 +348,11 @@ sap.ui.define([
                         oWizardModel.setProperty("/addItemEnabled", false);
                         MessageBox.warning("This exact item is already in your current PR draft cart.", { title: "Duplicate Item" });
                     } else {
-                        // Safe to proceed!
                         oWizardModel.setProperty("/addItemEnabled", true);
                     }
                 }
             }).catch(function (err) {
                 console.error("Duplicate validation check failed:", err);
-                // If network fails, allow them to proceed so UX doesn't freeze
                 oWizardModel.setProperty("/addItemEnabled", true); 
             });
         },

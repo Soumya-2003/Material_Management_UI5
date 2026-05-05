@@ -2,30 +2,39 @@
     controllerName="mmui5.controller.Drafts"
     xmlns:mvc="sap.ui.core.mvc"
     xmlns="sap.m"
+    xmlns:core="sap.ui.core"
 >
     <Page title="My Draft PRs" showNavButton="true" navButtonPress=".onNavBack">
         <content>
             <Table
                 id="draftsTable"
+                width="85%"
                 items="{
                        path: '/DraftPurchaseRequisitions',
                        filters: [{ path: 'status', operator: 'EQ', value1: 'DRAFT' }],
                        parameters: {
-                           $expand: 'items($expand=material,vendor)'
+                           $expand: 'items($expand=material,vendor)',
+                           $orderby: 'modifiedAt desc'
                        }
                    }"
             >
                 <columns>
                     <Column><Text text="PR Number" /></Column>
-                    <Column><Text text="Status" /></Column>
-                    <Column><Text text="Total Amount" /></Column>
+                    <Column><Text text="Materials" /></Column>
+                    <Column hAlign="End"><Text text="Total Amount" /></Column>
+                    <Column hAlign="End"><Text text="Last Updated" /></Column>
                 </columns>
                 <items>
                     <ColumnListItem type="Active" press=".onDraftSelect">
                         <cells>
                             <Text text="{prNumber}" />
-                            <ObjectStatus text="{status}" state="Warning" />
-                            <Text text="{totalAmount} USD" />
+                            <Link text="View Items" press=".onViewDraftItems" />
+                            <Text text="{totalAmount} INR" />
+                            <Text text="{
+                                path: 'modifiedAt',
+                                type: 'sap.ui.model.type.DateTimeOffset',
+                                formatOptions: { pattern: 'MMM dd, yyyy, hh:mm a' }
+                            }" />
                         </cells>
                     </ColumnListItem>
                 </items>

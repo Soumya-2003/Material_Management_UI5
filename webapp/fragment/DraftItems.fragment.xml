@@ -1,0 +1,35 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+    <Dialog 
+        id="draftItemsDialog" 
+        title="Draft Materials Preview" 
+        contentWidth="600px"
+        class="sapUiResponsivePadding--header sapUiResponsivePadding--content sapUiResponsivePadding--footer">
+        
+        <content>
+            <Table items="{items}" noDataText="No materials added yet.">
+                <columns>
+                    <Column><Text text="Material" /></Column>
+                    <Column><Text text="Vendor" /></Column>
+                    <Column hAlign="End"><Text text="Qty" /></Column>
+                    <Column hAlign="End"><Text text="Unit Price" /></Column>
+                </columns>
+                <items>
+                    <ColumnListItem>
+                        <cells>
+                            <Text text="{material/name}" />
+                            <Text text="{vendor/name}" />
+                            <Text text="{quantity}" />
+                            <Text text="{price} INR" />
+                        </cells>
+                    </ColumnListItem>
+                </items>
+            </Table>
+        </content>
+
+        <buttons>
+            <Button text="Close" press=".onCloseItemsDialog" type="Transparent" />
+        </buttons>
+    </Dialog>
+</core:FragmentDefinition>
